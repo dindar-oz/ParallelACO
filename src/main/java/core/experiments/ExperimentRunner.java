@@ -6,7 +6,6 @@ import core.algorithm.aco.ACO.ExecutionMode;
 import core.algorithm.aco.Ant;
 import core.algorithm.aco.problem.wsn.WSNAnt;
 import core.algorithm.aco.problem.wsn.WSNQPheromoneMatrix;
-import core.algorithm.dpso.DPSO;
 import core.algorithm.ga.*;
 import core.algorithm.localsearch.IterationBasedTC;
 import core.algorithm.localsearch.SolutionGenerator;
@@ -35,10 +34,6 @@ public class ExperimentRunner {
     private static final boolean RUN_COLONY_SIZE_SWEEP = false;
     private static final boolean RUN_EVAPORATION_SWEEP = false;
     private static final boolean RUN_PHEROMONE_SELECTION_SWEEP = true;
-    private static final boolean RUN_PSO_W_SWEEP = false;
-    private static final boolean RUN_PSO_SIP_SWEEP = true;
-    private static final boolean RUN_PSO_SIG_SWEEP = false;
-    private static final boolean RUN_PSO_SWARM_SIZE_SWEEP = true;
 
     /** Initial WSN pheromone. The old WSNQPheromoneMatrix ignored its argument and always used 1.0. */
     private static final double WSN_INITIAL_PHEROMONE = 1.0;
@@ -71,35 +66,6 @@ public class ExperimentRunner {
                 new TimeBasedTC(15000), ExecutionMode.ASYNCHRONOUS);
     }
 
-    static void parameterTuningPSOExperiment()
-    {
-        double[] wArr = {0.2,0.4,0.6,0.8};
-        double[] sipArr = {0.1,0.2,0.4,0.8};
-        double[] siGArr = {0.1,0.2,0.4,0.8};
-        int[] swarmSizes= {20,30,50};
-
-        for (int w = 0; RUN_PSO_W_SWEEP && w < wArr.length; w++) {
-            AbstractMetaheuristic alg = buildDPSOforPT(wArr[w],0.2,0.2,30);
-            performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_W.txt",3);
-        }
-
-        for (int sip = 0; RUN_PSO_SIP_SWEEP && sip < sipArr.length; sip++) {
-            AbstractMetaheuristic alg = buildDPSOforPT(0.6,sipArr[sip],0.2,30);
-            performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SIP.txt",10);
-        }
-
-        for (int sig = 0; RUN_PSO_SIG_SWEEP && sig < siGArr.length; sig++) {
-            AbstractMetaheuristic alg = buildDPSOforPT(0.6,0.2,siGArr[sig],30);
-            performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SIG.txt",10);
-        }
-
-        for (int ss = 0; RUN_PSO_SWARM_SIZE_SWEEP && ss < swarmSizes.length; ss++) {
-            AbstractMetaheuristic alg = buildDPSOforPT(0.6,0.2,0.2,swarmSizes[ss]);
-            performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SS.txt",10);
-        }
-
-    }
-
     static void parameterTuningExperiment()
     {
         int[] colonySize = {5,10,15,20};
@@ -129,8 +95,7 @@ public class ExperimentRunner {
         AbstractMetaheuristic algACO= buildSequentialACO();
         AbstractMetaheuristic algGA= buildGA();
         AbstractMetaheuristic algSA= buildSA();
-        AbstractMetaheuristic algDPSO = buildDPSO();
-        List<AbstractMetaheuristic> algorithms= List.of(algGA,algDPSO);
+        List<AbstractMetaheuristic> algorithms= List.of(algGA);
 
         performExperiments(algorithms,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/reference","./data/out/comparison2.txt",10);
     }
@@ -176,14 +141,9 @@ public class ExperimentRunner {
 
         AbstractMetaheuristic algSA= buildSA();
 
-        AbstractMetaheuristic algdpso = buildDPSO();
-
-        //convergenceExperiment(List.of(algdpso),problem,"./data/out/convergenceDPSO.txt");
         //performExperiments(algSA,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/reference","./data/out",3);
 
         //convergenceExperiment(List.of(algGA),problem,"./data/out/convergenceGA.txt");
-
-        //parameterTuningPSOExperiment();
 
     }
 
@@ -227,23 +187,5 @@ public class ExperimentRunner {
         }
         return new ACO(new WSNQPheromoneMatrix(WSN_INITIAL_PHEROMONE, colony.size(), 0.1), colony,
                 new TimeBasedTC(30000), mode);
-    }
-
-    private static AbstractMetaheuristic buildDPSO() {
-        int solutionSize = 529;
-        double w = 0.6;
-        double siP= 0.1;
-        double siG= 0.1;
-        AbstractMetaheuristic alg = new DPSO(w,siP,siG,30,new TimeBasedTC(30000),new RandomBitStringGenerator(529));
-
-        return alg;
-    }
-
-    private static AbstractMetaheuristic buildDPSOforPT(    double w , double siP, double siG, int ss) {
-        int solutionSize = 529;
-
-        AbstractMetaheuristic alg = new DPSO(w,siP,siG,ss,new TimeBasedTC(15000),new RandomBitStringGenerator(solutionSize));
-
-        return alg;
     }
 }
