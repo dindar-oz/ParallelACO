@@ -40,7 +40,8 @@ public class MultiCFPGenerator {
             agents[i][0] = rng.randInt(MAX);
             for(int j = 0 ; j<abilityCount ; j++){
                 int minBound = (maxRequirements[j]*taskCount)/agentCount;
-                agents[i][j+1] = (int) RandUtils.randDouble(minBound,minBound*TASK_DIFFICULTY);
+                // Drawn from the given rng (not the global one) so that a seed fully determines the instance.
+                agents[i][j+1] = (int) (minBound + (minBound*TASK_DIFFICULTY - minBound) * rng.randDouble());
             }
         }
         return agents;

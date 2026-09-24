@@ -21,7 +21,8 @@ public class MCFRandomSG implements SolutionGenerator {
 
         for (int i = 0; i < mcfp.getAgentCount(); i++) {
             if (rng.randDouble() < 0.5) { // assign agent to a random coalition
-                int selectedTask = rng.randInt(mcfp.getTaskCount())+1;
+                // Real tasks are 1..getTaskCount()-1 (task 0 is the dummy "unassigned" task).
+                int selectedTask = rng.randInt(mcfp.getTaskCount()-1)+1;
                 coalition[i] = selectedTask;
             }
             else{

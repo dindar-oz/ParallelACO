@@ -17,7 +17,8 @@ import core.utils.random.RandUtils;
  * <ol>
  *   <li>picks an idle agent by <em>inverse</em> roulette on its "unassigned" pheromone
  *       (column 0), so agents that good solutions tend to leave idle are picked less often;</li>
- *   <li>assigns it to a task chosen by roulette on the agent's task pheromone (columns 1..T).</li>
+ *   <li>assigns it to a real task (1 .. getTaskCount() - 1; task 0 is the model's dummy
+ *       "unassigned" task) chosen by roulette on the agent's task pheromone.</li>
  * </ol>
  * Construction stops when the coalitions are feasible or no idle agent is left.
  */
@@ -43,7 +44,7 @@ public class MultiCFPAnt extends BaseAnt {
         idleAgents = new int[agents];
         cellIndices = new int[Math.max(agents, mcfp.getTaskCount())];
         agentWeights = new double[agents];
-        taskWeights = new double[mcfp.getTaskCount()];
+        taskWeights = new double[realTaskCount()];
     }
 
     @Override
@@ -62,7 +63,7 @@ public class MultiCFPAnt extends BaseAnt {
         pheromone.read(cellIndices, idleCount, agentWeights);
         int agent = idleAgents[RandUtils.rouletteSelectInverse(rng, agentWeights, idleCount)];
 
-        int taskCount = mcfp.getTaskCount();
+        int taskCount = realTaskCount();
         for (int t = 0; t < taskCount; t++) {
             cellIndices[t] = pheromone.index(agent, t + 1);
         }
@@ -75,6 +76,14 @@ public class MultiCFPAnt extends BaseAnt {
     @Override
     protected boolean solutionConstructed() {
         return collectIdleAgents() == 0 || mcfp.isFeasible(currentAssignment);
+    }
+
+    /**
+     * Number of real tasks. {@link MCFPModel#getTaskCount()} includes the dummy task 0; using it
+     * directly used to let ants assign agents to a non-existent task that cost nothing.
+     */
+    private int realTaskCount() {
+        return mcfp.getTaskCount() - 1;
     }
 
     /** Fills {@link #idleAgents} with agents assigned to no task; returns how many there are. */

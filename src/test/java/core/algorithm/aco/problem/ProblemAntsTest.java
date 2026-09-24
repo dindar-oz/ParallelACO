@@ -15,6 +15,7 @@ import core.algorithm.aco.problem.wsn.WSNQPheromoneMatrix;
 import core.algorithm.localsearch.IterationBasedTC;
 import core.base.Solution;
 import core.problems.coalitionFormation.MCFPModel;
+import core.problems.coalitionFormation.MultiCoalition;
 import core.problems.wsn.WSN;
 import core.problems.wsn.WSNOptimizationProblem;
 import core.utils.random.SplittableRNG;
@@ -85,6 +86,24 @@ class ProblemAntsTest {
         ACO aco = new ACO(new MCFPPheromoneMatrix(10, ants.size(), 0.1), ants,
                 new IterationBasedTC(20), ExecutionMode.SYNCHRONOUS).withSeed(2);
         assertNotNull(aco.perform(problem));
+    }
+
+    /** Regression test: ants used to assign agents to a non-existent task (index == getTaskCount()). */
+    @Test
+    void mcfpAntOnlyAssignsRealTasks() {
+        SimpleOptimizationProblem problem = TestProblems.mcfp(6, 30, 5);
+        MCFPModel model = (MCFPModel) problem.model();
+        MultiCFPAnt ant = new MultiCFPAnt();
+        MCFPPheromoneMatrix trails = MCFPPheromoneMatrix.withAutoInit(1, 0.1);
+        trails.init(problem);
+        ant.init(problem, trails, new SplittableRNG(9));
+
+        for (int run = 0; run < 50; run++) {
+            MultiCoalition mc = (MultiCoalition) ant.constructSolution().getRepresentation();
+            for (int task : mc.getCoalitionAssignment().getValues()) {
+                assertTrue(task >= 0 && task < model.getTaskCount(), "invalid task index " + task);
+            }
+        }
     }
 
     @Test

@@ -91,7 +91,7 @@ public final class ACODemo {
         problem.addObjective(new MCFPCostObjective());
 
         List<Ant> colony = colony(8, MultiCFPAnt::new);
-        ACO aco = new ACO(new MCFPPheromoneMatrix(10, colony.size(), 0.1), colony,
+        ACO aco = new ACO(MCFPPheromoneMatrix.withAutoInit(colony.size(), 0.1), colony,
                 new IterationBasedTC(iterations), mode).withSeed(SEED);
         run(aco, problem);
     }
