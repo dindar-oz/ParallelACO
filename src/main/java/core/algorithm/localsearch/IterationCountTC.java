@@ -1,9 +1,8 @@
-package core.algorithm.nsga;
+package core.algorithm.localsearch;
 
 
 import core.algorithm.Iterating;
 import core.algorithm.base.OptimizationAlgorithm;
-import core.algorithm.localsearch.TerminalCondition;
 import core.base.OptimizationProblem;
 
 public class IterationCountTC implements TerminalCondition {

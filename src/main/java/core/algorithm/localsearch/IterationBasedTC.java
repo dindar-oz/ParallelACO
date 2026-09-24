@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * counts as one iteration (so call it once per iteration). The counter is atomic, so
  * concurrent callers never lose counts.
  * <p>
- * For algorithms that expose their own counter, {@link core.algorithm.nsga.IterationCountTC}
+ * For algorithms that expose their own counter, {@link core.algorithm.localsearch.IterationCountTC}
  * is an alternative whose check has no side effects.
  */
 public class IterationBasedTC implements TerminalCondition {

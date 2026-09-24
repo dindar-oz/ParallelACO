@@ -47,7 +47,7 @@ import java.util.logging.Logger;
  * terminal condition is evaluated exactly once per iteration (plus once before the first).
  * So {@code new IterationBasedTC(1000)} means 1000 &times; m solutions whatever the mode, and
  * sequential and parallel runs can be compared on equal work. {@link #iterationcount()}
- * exposes the same count for {@link core.algorithm.nsga.IterationCountTC}.
+ * exposes the same count for {@link core.algorithm.localsearch.IterationCountTC}.
  */
 public class ACO extends AbstractMetaheuristic implements Iterating {
 

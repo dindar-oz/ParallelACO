@@ -7,7 +7,7 @@ import core.algorithm.aco.problem.tsp.TSPAnt;
 import core.algorithm.aco.problem.tsp.TSPPheromoneMatrix;
 import core.algorithm.aco.problem.tsp.TSPQPheromoneMatrix;
 import core.algorithm.localsearch.IterationBasedTC;
-import core.algorithm.nsga.IterationCountTC;
+import core.algorithm.localsearch.IterationCountTC;
 import core.base.OptimizationProblem;
 import core.base.Solution;
 import core.problems.tsp.TSP;
