@@ -143,6 +143,8 @@ public class NSGA2Ranking {
         solutions.add(new RankedSolution(new IntegerRep(8),new double[]{1.2, 5.1, 7.0}));
         solutions.add(new RankedSolution(new IntegerRep(9),new double[]{2.0, 5.0, 5.7}));
         solutions.add(new RankedSolution(new IntegerRep(10),new double[]{5.0, 1.0, 3.0}));
+        solutions.add(new RankedSolution(new IntegerRep(10),new double[]{6.0, 2.0, 2.0}));
+
 
         NSGA2Ranking nsga2Ranking = new NSGA2Ranking();
 

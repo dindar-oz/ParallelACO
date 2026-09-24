@@ -47,6 +47,6 @@ public class SimpleSolution implements Solution {
 
     @Override
     public String toString() {
-        return Arrays.toString(objectives)+ " R:"+representation ;
+        return Arrays.toString(objectives)+ " REP:"+representation ;
     }
 }
