@@ -2,9 +2,9 @@ package core.algorithm.localsearch;
 
 import core.SimpleOptimizationProblem;
 import core.algorithm.AbstractSMetaheuristic;
-import core.algorithm.aco.problem.tsp.TSP;
-import core.algorithm.aco.problem.tsp.TSPMinimumDistanceObjective;
-import core.algorithm.aco.problem.tsp.TSPRandomSG;
+import core.problems.tsp.TSP;
+import core.problems.tsp.TSPMinimumDistanceObjective;
+import core.problems.tsp.TSPRandomSG;
 import core.algorithm.base.SingleObjectiveOA;
 import core.base.OptimizationProblem;
 import core.base.Solution;

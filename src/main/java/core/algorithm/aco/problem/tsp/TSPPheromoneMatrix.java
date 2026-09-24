@@ -1,83 +1,61 @@
 package core.algorithm.aco.problem.tsp;
 
-import core.algorithm.aco.Ant;
-import core.algorithm.aco.PheromoneTrails;
+import core.algorithm.aco.PheromoneMatrix;
 import core.base.OptimizationProblem;
 import core.base.Solution;
+import core.problems.tsp.TSP;
 import core.representation.Permutation;
 
-import java.util.List;
+/**
+ * Ant System pheromone for the TSP: an {@code n x n} edge matrix where each tour deposits
+ * {@code 1 / L} on every edge it uses ({@code L} = tour length).
+ */
+public class TSPPheromoneMatrix extends PheromoneMatrix {
 
-public class TSPPheromoneMatrix implements PheromoneTrails {
+    /** Pass as {@code initialValue} to use the Ant System default {@code tau0 = m / C_nn}. */
+    public static final double AUTO_INITIAL_VALUE = 0;
 
-    double initialValue;
-    double pheromone[][];
+    private boolean symmetric;
+    private int n;
 
-    double evaporationRatio;
-    int colonySize;
-
+    /**
+     * @param initialValue initial pheromone; any value {@code <= 0} means
+     *                     {@code colonySize / (nearest-neighbour tour length)}, which puts it on
+     *                     the same scale as the {@code 1/L} deposits
+     */
     public TSPPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio) {
-        this.initialValue = initialValue;
-        this.colonySize = colonySize;
-        this.evaporationRatio = evaporationRatio;
+        super(initialValue, colonySize, evaporationRatio);
+    }
+
+    /** Matrix with the recommended {@code tau0 = m / C_nn} initialisation. */
+    public static TSPPheromoneMatrix withNearestNeighbourInit(int colonySize, double evaporationRatio) {
+        return new TSPPheromoneMatrix(AUTO_INITIAL_VALUE, colonySize, evaporationRatio);
     }
 
     @Override
     public void init(OptimizationProblem problem) {
         TSP tsp = (TSP) problem.model();
-
-        pheromone = new double[tsp.getN()][tsp.getN()];
-        for (int r = 0; r < tsp.getN(); r++) {
-            for (int c = 0; c < tsp.getN(); c++) {
-                pheromone[r][c] = initialValue;
-            }
-        }
+        n = tsp.getN();
+        symmetric = tsp.isSymmetric();
+        double tau0 = initialValue > 0 ? initialValue : colonySize / tsp.nearestNeighbourTourLength(0);
+        allocate(n, n, tau0);
     }
 
     @Override
-    public void update(OptimizationProblem problem, List<Ant> colony) {
-        for (Ant a:colony)
-        {
-            update(problem,a);
-        }
-    }
-
-    @Override
-    public double getEvaporationRatio() {
-        return evaporationRatio;
-    }
-
-    @Override
-    public void update(OptimizationProblem problem, Ant ant) {
-        TSP tsp = (TSP) problem.model();
-        Solution s = ant.getSolution();
+    protected void deposit(OptimizationProblem problem, Solution s) {
         Permutation tour = (Permutation) s.getRepresentation();
-        evaporate(evaporationRatio/colonySize);
-        update(tour,1.0/s.objectiveValue());
-
-    }
-
-    private synchronized void update(Permutation tour, double delta) {
+        double delta = 1.0 / s.objectiveValue();
         for (int i = 0; i < tour.size(); i++) {
             int c1 = tour.get(i);
-            int c2 = tour.get((i+1)%tour.size());
-
-            pheromone[c1][c2] += delta;
+            int c2 = tour.get((i + 1) % tour.size());
+            add(index(c1, c2), delta);
+            if (symmetric)
+                add(index(c2, c1), delta); // the edge can be travelled in both directions
         }
     }
 
-
-    private synchronized void evaporate(double ratio) {
-        for (int r = 0; r < pheromone.length; r++) {
-            for (int c = 0; c < pheromone[0].length; c++) {
-                pheromone[r][c] *= (1-ratio);
-            }
-        }
-    }
-
-
-    public double get(int c1, int c2)
-    {
-        return pheromone[c1][c2];
+    @Override
+    protected PheromoneMatrix create(int colonySize) {
+        return new TSPPheromoneMatrix(initialValue, colonySize, evaporationRatio);
     }
 }

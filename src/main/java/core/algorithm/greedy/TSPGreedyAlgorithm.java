@@ -2,8 +2,8 @@ package core.algorithm.greedy;
 
 import core.SimpleOptimizationProblem;
 import core.algorithm.SimpleSolution;
-import core.algorithm.aco.problem.tsp.TSP;
-import core.algorithm.aco.problem.tsp.TSPMinimumDistanceObjective;
+import core.problems.tsp.TSP;
+import core.problems.tsp.TSPMinimumDistanceObjective;
 import core.algorithm.base.SingleObjectiveOA;
 import core.base.OptimizationProblem;
 import core.base.Solution;

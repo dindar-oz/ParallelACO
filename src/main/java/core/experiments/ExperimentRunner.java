@@ -1,11 +1,11 @@
 package core.experiments;
 
 import core.algorithm.AbstractMetaheuristic;
+import core.algorithm.aco.ACO;
+import core.algorithm.aco.ACO.ExecutionMode;
 import core.algorithm.aco.Ant;
-import core.algorithm.aco.PACO2;
 import core.algorithm.aco.problem.wsn.WSNAnt;
 import core.algorithm.aco.problem.wsn.WSNQPheromoneMatrix;
-import core.algorithm.aco.problem.wsn.WSNSimpleAnt;
 import core.algorithm.dpso.DPSO;
 import core.algorithm.ga.*;
 import core.algorithm.localsearch.IterationBasedTC;
@@ -30,6 +30,19 @@ interface InstanceGenerator
 
 public class ExperimentRunner {
 
+    // Parameter sweeps that have already been run are switched off here rather than by
+    // hacking the loop bounds.
+    private static final boolean RUN_COLONY_SIZE_SWEEP = false;
+    private static final boolean RUN_EVAPORATION_SWEEP = false;
+    private static final boolean RUN_PHEROMONE_SELECTION_SWEEP = true;
+    private static final boolean RUN_PSO_W_SWEEP = false;
+    private static final boolean RUN_PSO_SIP_SWEEP = true;
+    private static final boolean RUN_PSO_SIG_SWEEP = false;
+    private static final boolean RUN_PSO_SWARM_SIZE_SWEEP = true;
+
+    /** Initial WSN pheromone. The old WSNQPheromoneMatrix ignored its argument and always used 1.0. */
+    private static final double WSN_INITIAL_PHEROMONE = 1.0;
+
     static void performExperiment(AbstractMetaheuristic algorithm, InstanceGenerator problemGenerator,String instanceFile, String outputFile, int repeatCount)
     {
         OptimizationProblem problem = problemGenerator.generate(instanceFile);
@@ -46,15 +59,16 @@ public class ExperimentRunner {
         }
     }
 
-    static AbstractMetaheuristic buildPACOforPT(int colonySize,double evaporationRatio, double pheromonRate)
+    /** ACO used for parameter tuning on WSN instances. */
+    static AbstractMetaheuristic buildACOforPT(int colonySize, double evaporationRatio, double pheromoneSelectionRate)
     {
         List<Ant> colony = new ArrayList<>();
         for (int i = 0; i < colonySize; i++) {
-            colony.add(new WSNAnt(pheromonRate));
+            colony.add(new WSNAnt(pheromoneSelectionRate));
         }
 
-        AbstractMetaheuristic alg = new PACO2(new WSNQPheromoneMatrix(10,colonySize,evaporationRatio),colony,new TimeBasedTC(15000),pheromonRate);
-        return alg;
+        return new ACO(new WSNQPheromoneMatrix(WSN_INITIAL_PHEROMONE, colonySize, evaporationRatio), colony,
+                new TimeBasedTC(15000), ExecutionMode.ASYNCHRONOUS);
     }
 
     static void parameterTuningPSOExperiment()
@@ -64,22 +78,22 @@ public class ExperimentRunner {
         double[] siGArr = {0.1,0.2,0.4,0.8};
         int[] swarmSizes= {20,30,50};
 
-        for (int w = 4; w < wArr.length; w++) {
+        for (int w = 0; RUN_PSO_W_SWEEP && w < wArr.length; w++) {
             AbstractMetaheuristic alg = buildDPSOforPT(wArr[w],0.2,0.2,30);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_W.txt",3);
         }
 
-        for (int sip = 0; sip < sipArr.length; sip++) {
+        for (int sip = 0; RUN_PSO_SIP_SWEEP && sip < sipArr.length; sip++) {
             AbstractMetaheuristic alg = buildDPSOforPT(0.6,sipArr[sip],0.2,30);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SIP.txt",10);
         }
 
-        for (int sig = 4; sig < siGArr.length; sig++) {
+        for (int sig = 0; RUN_PSO_SIG_SWEEP && sig < siGArr.length; sig++) {
             AbstractMetaheuristic alg = buildDPSOforPT(0.6,0.2,siGArr[sig],30);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SIG.txt",10);
         }
 
-        for (int ss = 0; ss < swarmSizes.length; ss++) {
+        for (int ss = 0; RUN_PSO_SWARM_SIZE_SWEEP && ss < swarmSizes.length; ss++) {
             AbstractMetaheuristic alg = buildDPSOforPT(0.6,0.2,0.2,swarmSizes[ss]);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning_pso","./data/out/paramtuningpso_SS.txt",10);
         }
@@ -90,20 +104,20 @@ public class ExperimentRunner {
     {
         int[] colonySize = {5,10,15,20};
         double[] evaporationRatios = {0.05,0.1,0.2};
-        double[] pheromonRates = {0.1,0.2,0.4,0.6};
+        double[] pheromoneSelectionRates = {0.1,0.2,0.4,0.6};
 
-        for (int cs = 4; cs < colonySize.length; cs++) {
-            AbstractMetaheuristic alg = buildPACOforPT(colonySize[cs],0.1,0.6);
+        for (int cs = 0; RUN_COLONY_SIZE_SWEEP && cs < colonySize.length; cs++) {
+            AbstractMetaheuristic alg = buildACOforPT(colonySize[cs],0.1,0.6);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning","./data/out/paramtuning_CS.txt",10);
         }
 
-        for (int er = 4; er < evaporationRatios.length; er++) {
-            AbstractMetaheuristic alg = buildPACOforPT(5,evaporationRatios[er],0.6);
+        for (int er = 0; RUN_EVAPORATION_SWEEP && er < evaporationRatios.length; er++) {
+            AbstractMetaheuristic alg = buildACOforPT(5,evaporationRatios[er],0.6);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning","./data/out/paramtuning_ER.txt",10);
         }
 
-        for (int pr = 0; pr < pheromonRates.length; pr++) {
-            AbstractMetaheuristic alg = buildPACOforPT(5,0.1,pheromonRates[pr]);
+        for (int pr = 0; RUN_PHEROMONE_SELECTION_SWEEP && pr < pheromoneSelectionRates.length; pr++) {
+            AbstractMetaheuristic alg = buildACOforPT(5,0.1,pheromoneSelectionRates[pr]);
             performExperiments(alg,WSNProblemGenerator::generateProblemInstanceFromJson,"./data/wsn/paramtuning","./data/out/paramtuning_PR.txt",10);
         }
 
@@ -111,8 +125,8 @@ public class ExperimentRunner {
 
     static void comparisonExperiment()
     {
-        AbstractMetaheuristic algPACO2= buildPACO2();
-        AbstractMetaheuristic algACO= buildACO();
+        AbstractMetaheuristic algParallelACO= buildParallelACO();
+        AbstractMetaheuristic algACO= buildSequentialACO();
         AbstractMetaheuristic algGA= buildGA();
         AbstractMetaheuristic algSA= buildSA();
         AbstractMetaheuristic algDPSO = buildDPSO();
@@ -142,7 +156,7 @@ public class ExperimentRunner {
     {
         for (AbstractMetaheuristic alg:algorithms)
         {
-            performExperiments(alg,generator,instanceFolder,outputFile, 10);
+            performExperiments(alg,generator,instanceFolder,outputFile, repeatCount);
         }
 
     }
@@ -154,9 +168,9 @@ public class ExperimentRunner {
         WSNOptimizationProblem problem = WSNProblemGenerator.generateProblemInstanceFromJson("./data/wsn/reference/m_3_k_3_tc_300_dim_600_600_1.json"); // todo: call Generator here
 
 
-        AbstractMetaheuristic algPACO2= buildPACO2();
+        AbstractMetaheuristic algParallelACO= buildParallelACO();
 
-        AbstractMetaheuristic algACO= buildACO();
+        AbstractMetaheuristic algACO= buildSequentialACO();
 
         AbstractMetaheuristic algGA= buildGA();
 
@@ -194,24 +208,25 @@ public class ExperimentRunner {
         return alg;
     }
 
-    private static AbstractMetaheuristic buildPACO2() {
+    /**
+     * Sequential and parallel ACO share everything except the execution mode, so comparing
+     * them measures only the effect of parallelism.
+     */
+    private static AbstractMetaheuristic buildParallelACO() {
+        return buildWsnACO(ExecutionMode.ASYNCHRONOUS);
+    }
+
+    private static AbstractMetaheuristic buildSequentialACO() {
+        return buildWsnACO(ExecutionMode.SEQUENTIAL);
+    }
+
+    private static AbstractMetaheuristic buildWsnACO(ExecutionMode mode) {
         List<Ant> colony = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             colony.add(new WSNAnt(0.2));
         }
-
-        AbstractMetaheuristic alg = new PACO2(new WSNQPheromoneMatrix(10,colony.size(),0.1),colony,new TimeBasedTC(30000),0.2);
-        return alg;
-    }
-
-    private static AbstractMetaheuristic buildACO() {
-        List<Ant> colony = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            colony.add(new WSNSimpleAnt());
-        }
-
-        AbstractMetaheuristic alg = new PACO2(new WSNQPheromoneMatrix(10,colony.size(),0.1),colony,new TimeBasedTC(30000),0.2);
-        return alg;
+        return new ACO(new WSNQPheromoneMatrix(WSN_INITIAL_PHEROMONE, colony.size(), 0.1), colony,
+                new TimeBasedTC(30000), mode);
     }
 
     private static AbstractMetaheuristic buildDPSO() {

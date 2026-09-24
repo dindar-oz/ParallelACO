@@ -1,113 +1,64 @@
 package core.algorithm.aco.problem.tsp;
 
-import core.algorithm.aco.Ant;
-import core.algorithm.aco.PheromoneTrails;
+import core.algorithm.aco.PheromoneMatrix;
 import core.base.OptimizationProblem;
 import core.base.Solution;
+import core.problems.tsp.TSP;
 import core.representation.Permutation;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+/**
+ * Q-learning style pheromone for the TSP. Each edge of a tour moves towards the tour's
+ * improvement over a reference upper bound:
+ * {@code tau += learningRate * (max(0, UB - L) - tau)}, where {@code UB} is the
+ * nearest-neighbour tour length. Tours worse than the bound pull their edges towards zero.
+ */
+public class TSPQPheromoneMatrix extends PheromoneMatrix {
 
-public class TSPQPheromoneMatrix implements PheromoneTrails {
+    private static final double DEFAULT_LEARNING_RATE = 0.9;
 
-    double initialValue;
-    double pheromone[][];
-
-    double evaporationRatio;
-    int colonySize;
+    private final double learningRate;
     private double upperBound;
-
-    double alpha = 0.9;
-
+    private boolean symmetric;
 
     public TSPQPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio) {
-        this.initialValue = initialValue;
-        this.colonySize = colonySize;
-        this.evaporationRatio = evaporationRatio;
+        this(initialValue, colonySize, evaporationRatio, DEFAULT_LEARNING_RATE);
+    }
+
+    public TSPQPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio, double learningRate) {
+        super(initialValue, colonySize, evaporationRatio);
+        this.learningRate = learningRate;
     }
 
     @Override
     public void init(OptimizationProblem problem) {
         TSP tsp = (TSP) problem.model();
-
-        upperBound = calculateUB(tsp);
-        pheromone = new double[tsp.getN()][tsp.getN()];
-        for (int r = 0; r < tsp.getN(); r++) {
-            for (int c = 0; c < tsp.getN(); c++) {
-                pheromone[r][c] = initialValue;
-            }
-        }
+        upperBound = tsp.nearestNeighbourTourLength(0);
+        symmetric = tsp.isSymmetric();
+        allocate(tsp.getN(), tsp.getN(), initialValue);
     }
 
-    private double calculateUB(TSP tsp) {
-
-        List<Integer> visited= new ArrayList<>();
-        List<Integer> nonVisited= IntStream.range(1,tsp.n).boxed().collect(Collectors.toList());
-        visited.add(0);
-        int current =0;
-        double tourLength=0;
-        while (!nonVisited.isEmpty())
-        {
-            int next = IntStream.range(0,nonVisited.size()).boxed().min(Comparator.comparingDouble(x->tsp.distances[0][x])).get();
-            visited.add(next);
-            tourLength = tsp.distances[current][next];
-            nonVisited.removeIf(x->x.equals(next));
-            current=next;
-        }
-        tourLength += tsp.distances[current][0];
-        return tourLength;
+    /** @return the reference tour length the deposits are measured against */
+    public double getUpperBound() {
+        return upperBound;
     }
 
     @Override
-    public void update(OptimizationProblem problem, List<Ant> colony) {
-        for (Ant a:colony)
-        {
-            update(problem,a);
-        }
-    }
-
-    @Override
-    public double getEvaporationRatio() {
-        return evaporationRatio;
-    }
-
-    @Override
-    public void update(OptimizationProblem problem, Ant ant) {
-        TSP tsp = (TSP) problem.model();
-        Solution s = ant.getSolution();
+    protected void deposit(OptimizationProblem problem, Solution s) {
         Permutation tour = (Permutation) s.getRepresentation();
-        evaporate(evaporationRatio/colonySize);
-        update(tour,s.objectiveValue());
-
-    }
-
-    private synchronized void update(Permutation tour, double tourLength) {
-        double delta = upperBound-tourLength;
+        // Clamped at zero so that pheromone can never become negative.
+        double target = Math.max(0, upperBound - s.objectiveValue());
 
         for (int i = 0; i < tour.size(); i++) {
             int c1 = tour.get(i);
-            int c2 = tour.get((i+1)%tour.size());
-
-            pheromone[c1][c2] = pheromone[c1][c2] + alpha*(delta-pheromone[c1][c2]);
+            int c2 = tour.get((i + 1) % tour.size());
+            blend(index(c1, c2), target, learningRate);
+            if (symmetric)
+                blend(index(c2, c1), target, learningRate);
         }
     }
 
-
-    private synchronized void evaporate(double ratio) {
-        for (int r = 0; r < pheromone.length; r++) {
-            for (int c = 0; c < pheromone[0].length; c++) {
-                pheromone[r][c] *= (1-ratio);
-            }
-        }
-    }
-
-
-    public double get(int c1, int c2)
-    {
-        return pheromone[c1][c2];
+    @Override
+    protected PheromoneMatrix create(int colonySize) {
+        return new TSPQPheromoneMatrix(initialValue, colonySize, evaporationRatio, learningRate);
     }
 }

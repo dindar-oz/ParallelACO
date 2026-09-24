@@ -1,39 +1,39 @@
 package core.utils.random;
 
+/**
+ * Roulette wheel that is built once and spun many times; each spin is a binary search
+ * over the cumulative weights.
+ */
 class Roulette
 {
-    double[] c;
-    double total;
-    RNG rng;
+    private final double[] cumulative;
+    private final double total;
+    private final RNG rng;
 
-    public Roulette(RNG rng, double[] n) {
+    public Roulette(RNG rng, double[] weights) {
         this.rng = rng;
-        total = 0;
-        c = new double[n.length+1];
-        c[0] = 0;
-        // Create cumulative values for later:
-        for (int i = 0; i < n.length; i++) {
-            c[i+1] = c[i] + n[i];
-            total += n[i];
+        cumulative = new double[weights.length + 1];
+        for (int i = 0; i < weights.length; i++) {
+            cumulative[i + 1] = cumulative[i] + weights[i];
         }
+        total = cumulative[weights.length];
     }
 
     public int spin() {
-        double r = rng.randDouble() * total;     // Create a rng number between 0 and 1 and times by the total we calculated earlier.
-        //int j; for (j = 0; j < c.Length; j++) if (c[j] > r) break; return j-1; // Don't use this - it's slower than the binary search below.
+        int n = cumulative.length - 1;
+        if (!(total > 0))
+            return rng.randInt(n); // degenerate wheel: every slot has zero weight
 
-        //// Binary search for efficiency. Objective is to find index of the number just above r:
+        double r = rng.randDouble() * total;
+
+        // Binary search for the slot i with cumulative[i] <= r < cumulative[i+1].
         int a = 0;
-        int b = c.length - 1;
+        int b = n;
         while (b - a > 1) {
-            int mid = (a + b) / 2;
-            if (c[mid] > r) b = mid;
+            int mid = (a + b) >>> 1;
+            if (cumulative[mid] > r) b = mid;
             else a = mid;
         }
         return a;
-    }
-
-    public static void main(String[] args) {
-
     }
 }

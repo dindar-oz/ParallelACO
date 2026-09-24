@@ -10,7 +10,8 @@ import java.util.List;
 
 public abstract class AbstractMetaheuristic implements SingleObjectiveOA {
 
-    protected Solution bestSolution;
+    // volatile: parallel algorithms (e.g. ACO) update it from worker threads and read it elsewhere
+    protected volatile Solution bestSolution;
     protected SolutionGenerator solutionGenerator;
     private long startTime;
     private long bestAchieveTime;
@@ -45,6 +46,8 @@ public abstract class AbstractMetaheuristic implements SingleObjectiveOA {
 
     protected void init(OptimizationProblem problem)
     {
+        // Instances are reused across repeated runs, so forget the previous run's best.
+        bestSolution = null;
         startTime = System.currentTimeMillis();
         if (!convergeAnalysisFileName.isEmpty())
         {
@@ -57,12 +60,12 @@ public abstract class AbstractMetaheuristic implements SingleObjectiveOA {
         for (Solution s:solutions)
             updateBest(problem,s);
     }
+    /** Thread-safe: parallel algorithms call this concurrently from several workers. */
     protected synchronized void updateBest(OptimizationProblem problem , Solution solution)
     {
         if ( bestSolution ==null|| problem.objectiveType().betterThan(solution.objectiveValue(),bestSolution.objectiveValue()))
         {
             bestSolution = solution;
-           // System.out.println("BEST UPDATED : "+ bestSolution);
             bestAchieveTime = System.currentTimeMillis();
             if (!convergeAnalysisFileName.isEmpty())
             {

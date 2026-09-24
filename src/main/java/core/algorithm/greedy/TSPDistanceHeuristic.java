@@ -1,6 +1,6 @@
 package core.algorithm.greedy;
 
-import core.algorithm.aco.problem.tsp.TSP;
+import core.problems.tsp.TSP;
 import core.utils.Pair;
 
 public class TSPDistanceHeuristic implements Heuristic<TSP, Pair<Integer,Integer>> {

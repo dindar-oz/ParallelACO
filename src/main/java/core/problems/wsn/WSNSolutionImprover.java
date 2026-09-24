@@ -184,7 +184,9 @@ public class WSNSolutionImprover implements SolutionImprover {
                         map(x->new int[]{x,wsnData.connectivity(x,sensors)}).sorted(Comparator.comparingInt(x->x[1])).
                         toArray(int[][]::new);
 
-                sensorToTurnOn.add(arr[arr.length-1][0]);
+                // Every neighbour already active: nothing can be switched on for this sensor.
+                if (arr.length > 0)
+                    sensorToTurnOn.add(arr[arr.length-1][0]);
             }
         }
         return sensorToTurnOn.stream().mapToInt(x->x).toArray();

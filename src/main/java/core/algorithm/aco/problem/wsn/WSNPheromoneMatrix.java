@@ -1,70 +1,38 @@
 package core.algorithm.aco.problem.wsn;
 
-import core.algorithm.aco.Ant;
-import core.algorithm.aco.PheromoneTrails;
+import core.algorithm.aco.PheromoneMatrix;
 import core.base.OptimizationProblem;
 import core.base.Solution;
 import core.problems.wsn.WSN;
 import core.representation.BitString;
 
-import java.util.Arrays;
-
-public class WSNPheromoneMatrix  implements PheromoneTrails {
-
-    double initialValue;
-    double pheromone[];
-
-    double evaporationRatio;
-    int colonySize;
+/**
+ * Ant System pheromone for the WSN problem: one value per potential sensor position (a single
+ * row). Every solution deposits {@code 1 / cost} on each sensor it switches on.
+ */
+public class WSNPheromoneMatrix extends PheromoneMatrix {
 
     public WSNPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio) {
-        this.initialValue = initialValue;
-        this.colonySize = colonySize;
-        this.evaporationRatio = evaporationRatio;
+        super(initialValue, colonySize, evaporationRatio);
     }
 
     @Override
     public void init(OptimizationProblem problem) {
         WSN wsn = (WSN) problem.model();
-
-        pheromone = new double[wsn.getSolutionSize()];
-        Arrays.fill(pheromone, initialValue);
+        allocate(1, wsn.getSolutionSize(), initialValue);
     }
 
-
     @Override
-    public void update(OptimizationProblem problem, Ant ant) {
-        WSN wsn = (WSN) problem.model();
-        Solution s = ant.getSolution();
+    protected void deposit(OptimizationProblem problem, Solution s) {
         BitString bs = (BitString) s.getRepresentation();
-
-        evaporate(evaporationRatio/colonySize);
-        update(bs,1.0/s.objectiveValue());
-
+        double delta = 1.0 / s.objectiveValue();
+        for (int i = bs.getBitSet().nextSetBit(0); i >= 0; i = bs.getBitSet().nextSetBit(i + 1)) {
+            add(i, delta);
+        }
     }
 
     @Override
-    public double getEvaporationRatio() {
-        return evaporationRatio;
-    }
-
-    private synchronized void update(BitString assignment, double delta) {
-        for (int i = 0; i < assignment.length(); i++) {
-            int c1 = assignment.get(i)? 1:0;
-
-            pheromone[i] += c1*delta;
-        }
-    }
-
-    private synchronized void evaporate(double ratio) {
-        for (int r = 0; r < pheromone.length; r++) {
-            pheromone[r] *= (1-ratio);
-        }
-    }
-
-
-    public double get(int c1)
-    {
-        return pheromone[c1];
+    protected PheromoneMatrix create(int colonySize) {
+        return new WSNPheromoneMatrix(initialValue, colonySize, evaporationRatio);
     }
 }

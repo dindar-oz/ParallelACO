@@ -1,84 +1,43 @@
 package core.algorithm.aco.problem.cfp;
 
-import core.algorithm.aco.Ant;
-import core.algorithm.aco.PheromoneTrails;
+import core.algorithm.aco.PheromoneMatrix;
 import core.base.OptimizationProblem;
 import core.base.Solution;
 import core.problems.coalitionFormation.MCFPModel;
 import core.problems.coalitionFormation.MultiCoalition;
 import core.representation.IntegerAssignment;
 
-import java.util.List;
-
-public class MCFPPheromoneMatrix implements PheromoneTrails {
-
-    double initialValue;
-    double pheromone[][];
-
-    double evaporationRatio;
-    int colonySize;
+/**
+ * Pheromone for the multi-task coalition formation problem: an
+ * {@code agents x (tasks + 1)} matrix where cell {@code (a, t)} rewards assigning agent
+ * {@code a} to task {@code t}. Column 0 means "not assigned to any task". Each solution
+ * deposits {@code 1 / cost} on its assignments.
+ */
+public class MCFPPheromoneMatrix extends PheromoneMatrix {
 
     public MCFPPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio) {
-        this.initialValue = initialValue;
-        this.colonySize = colonySize;
-        this.evaporationRatio = evaporationRatio;
+        super(initialValue, colonySize, evaporationRatio);
     }
 
     @Override
     public void init(OptimizationProblem problem) {
         MCFPModel mcfp = (MCFPModel) problem.model();
-
-        pheromone = new double[mcfp.getAgentCount()][mcfp.getAgentCount()+1];
-        for (int r = 0; r < pheromone.length; r++) {
-            for (int c = 0; c < pheromone[r].length; c++) {
-                pheromone[r][c] = initialValue;
-            }
-        }
+        // +1 column for "unassigned" (task index 0); real tasks are 1..taskCount.
+        allocate(mcfp.getAgentCount(), mcfp.getTaskCount() + 1, initialValue);
     }
 
     @Override
-    public void update(OptimizationProblem problem, List<Ant> colony) {
-        for (Ant a:colony)
-        {
-            update(problem,a);
-        }
-    }
-
-    @Override
-    public double getEvaporationRatio() {
-        return evaporationRatio;
-    }
-
-    @Override
-    public void update(OptimizationProblem problem, Ant ant) {
-        MCFPModel cfp = (MCFPModel) problem.model();
-        Solution s = ant.getSolution();
+    protected void deposit(OptimizationProblem problem, Solution s) {
         MultiCoalition mc = (MultiCoalition) s.getRepresentation();
         IntegerAssignment assignment = mc.getCoalitionAssignment();
-        evaporate(evaporationRatio/colonySize);
-        update(assignment,1.0/s.objectiveValue());
-
-    }
-
-    private synchronized void update(IntegerAssignment assignment, double delta) {
-        for (int i = 0; i < assignment.getLength(); i++) {
-            int c1 = assignment.get(i);
-
-            pheromone[i][c1] += delta;
+        double delta = 1.0 / s.objectiveValue();
+        for (int agent = 0; agent < assignment.getLength(); agent++) {
+            add(index(agent, assignment.get(agent)), delta);
         }
     }
 
-    private synchronized void evaporate(double ratio) {
-        for (int r = 0; r < pheromone.length; r++) {
-            for (int c = 0; c < pheromone[0].length; c++) {
-                pheromone[r][c] *= (1-ratio);
-            }
-        }
-    }
-
-
-    public double get(int c1, int c2)
-    {
-        return pheromone[c1][c2];
+    @Override
+    protected PheromoneMatrix create(int colonySize) {
+        return new MCFPPheromoneMatrix(initialValue, colonySize, evaporationRatio);
     }
 }

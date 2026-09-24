@@ -1,8 +1,6 @@
 package core.algorithm.aco.problem.wsn;
 
-
-import core.algorithm.aco.Ant;
-import core.algorithm.aco.PheromoneTrails;
+import core.algorithm.aco.PheromoneMatrix;
 import core.base.OptimizationProblem;
 import core.base.Solution;
 import core.problems.wsn.WSN;
@@ -10,80 +8,59 @@ import core.representation.BitString;
 
 import java.util.BitSet;
 
-public class WSNQPheromoneMatrix implements PheromoneTrails {
+/**
+ * Relative-improvement pheromone for the WSN problem. The reference cost {@code base} is the
+ * cost of switching every sensor on. A solution with cost {@code c} deposits
+ * {@code learningRate * max(0, (base - c) / base)} on each sensor it uses, so only solutions
+ * better than "everything on" reinforce the trail.
+ * <p>
+ * Evaporation happens on every update. Previously it only happened for solutions better than
+ * {@code base}, which made the decay rate depend on solution quality.
+ */
+public class WSNQPheromoneMatrix extends PheromoneMatrix {
 
-    double initialValue;
-    double pheromone[];
+    private static final double DEFAULT_LEARNING_RATE = 0.9;
 
-    double evaporationRatio;
-    int colonySize;
+    private final double learningRate;
     private double base;
 
-    double alpha = 0.9;
-
     public WSNQPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio) {
-        this.initialValue = initialValue;
-        this.colonySize = colonySize;
-        this.evaporationRatio = evaporationRatio;
+        this(initialValue, colonySize, evaporationRatio, DEFAULT_LEARNING_RATE);
+    }
+
+    public WSNQPheromoneMatrix(double initialValue, int colonySize, double evaporationRatio, double learningRate) {
+        super(initialValue, colonySize, evaporationRatio);
+        this.learningRate = learningRate;
     }
 
     @Override
     public void init(OptimizationProblem problem) {
         WSN wsn = (WSN) problem.model();
-        base = calculateBase(problem);
-        pheromone = new double[wsn.getSolutionSize()];
-        for (int r = 0; r < pheromone.length; r++) {
-            pheromone[r] = 1.0;
-        }
+        base = allSensorsOnCost(problem, wsn.getSolutionSize());
+        allocate(1, wsn.getSolutionSize(), initialValue);
     }
 
-    private double calculateBase( OptimizationProblem problem) {
-        WSN wsn = (WSN) problem.model();
-        BitString base = new BitString(new BitSet(wsn.getSolutionSize()),wsn.getSolutionSize());
-        for (int i = 0; i < wsn.getSolutionSize(); i++) {
-            base.set(i,true);
-        }
-        double baseCost= problem.objectiveValue(base);
-
-        return baseCost;
+    private static double allSensorsOnCost(OptimizationProblem problem, int size) {
+        BitSet all = new BitSet(size);
+        all.set(0, size);
+        return problem.objectiveValue(new BitString(all, size));
     }
 
     @Override
-    public void update(OptimizationProblem problem, Ant ant) {
-        WSN wsn = (WSN) problem.model();
-        Solution s = ant.getSolution();
-        BitString bs = (BitString) s.getRepresentation();
+    protected void deposit(OptimizationProblem problem, Solution s) {
+        double improvement = Math.max(0, (base - s.objectiveValue()) / base);
+        if (improvement == 0)
+            return;
 
-        if (s.objectiveValue()<=base) {
-            evaporate(evaporationRatio / colonySize);
-            update(bs, s.objectiveValue());
+        BitSet bits = ((BitString) s.getRepresentation()).getBitSet();
+        double delta = learningRate * improvement;
+        for (int i = bits.nextSetBit(0); i >= 0; i = bits.nextSetBit(i + 1)) {
+            add(i, delta);
         }
     }
 
     @Override
-    public double getEvaporationRatio() {
-        return evaporationRatio;
-    }
-
-    private synchronized void update(BitString assignment, double cost) {
-        double delta= (base-cost)/base;
-        delta= Math.max(0,delta);
-        for (int i = 0; i < assignment.length(); i++) {
-            int c1 = assignment.get(i)? 1:0;
-
-            pheromone[i] += c1*(alpha)*delta;
-        }
-    }
-
-    private synchronized void evaporate(double ratio) {
-        for (int r = 0; r < pheromone.length; r++) {
-            pheromone[r] *= (1-ratio);
-        }
-    }
-
-
-    public double get(int c1)
-    {
-        return pheromone[c1];
+    protected PheromoneMatrix create(int colonySize) {
+        return new WSNQPheromoneMatrix(initialValue, colonySize, evaporationRatio, learningRate);
     }
 }
