@@ -18,8 +18,7 @@ import core.problems.coalitionFormation.MCFPModel;
 import core.problems.coalitionFormation.MultiCFPGenerator;
 import core.problems.tsp.TSP;
 import core.problems.tsp.TSPMinimumDistanceObjective;
-import core.problems.tsp.tsplib.datamodel.tour.Tour;
-import core.problems.tsp.tsplib.parser.TspLibParser;
+import core.problems.tsp.TspLibReader;
 import core.problems.wsn.WSNProblemGenerator;
 import core.representation.Permutation;
 import core.utils.random.SplittableRNG;
@@ -29,7 +28,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 /**
  * Command-line demos of {@link ACO} on the three supported problems.
@@ -60,15 +58,14 @@ public final class ACODemo {
 
     private static void demoTSP(String file, ExecutionMode mode, int iterations) {
         requireFile(file);
-        TSP tsp = TSP.fromTsp(TspLibParser.parseTsp(file));
+        TSP tsp = TSP.fromTspLib(Path.of(file));
         SimpleOptimizationProblem problem = new SimpleOptimizationProblem(tsp);
         problem.addObjective(new TSPMinimumDistanceObjective());
 
         // If an optimal tour is shipped next to the instance, print its cost for reference.
         String optTourFile = file.replaceFirst("\\.tsp$", ".opt.tour");
         if (Files.exists(Path.of(optTourFile))) {
-            Tour tour = TspLibParser.parseTour(optTourFile);
-            int[] nodes = IntStream.of(tour.getTour().get(0)).map(x -> x - 1).toArray(); // TSPLIB is 1-based
+            int[] nodes = TspLibReader.readTour(Path.of(optTourFile)); // already 0-based
             System.out.println("Optimal tour cost: " + problem.objectiveValue(new Permutation(nodes)));
         }
 

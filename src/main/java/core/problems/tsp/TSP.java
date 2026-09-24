@@ -2,13 +2,9 @@ package core.problems.tsp;
 
 import core.base.ProblemModel;
 import core.base.Representation;
-import core.problems.tsp.tsplib.datamodel.tsp.Tsp;
-import core.problems.tsp.tsplib.datamodel.types.EdgeWeightType;
-import core.problems.tsp.tsplib.util.EdgeWeightCalculationMethodFactory;
 import core.representation.Permutation;
 
-import java.util.List;
-import java.util.function.BiFunction;
+import java.nio.file.Path;
 
 /**
  * Travelling Salesman Problem instance defined by a full distance matrix.
@@ -26,38 +22,12 @@ public class TSP implements ProblemModel {
     }
 
     /**
-     * Builds an instance from a parsed TSPLIB file using the metric the file declares
-     * ({@code EDGE_WEIGHT_TYPE}). This matters for comparing against published optima: e.g. the
-     * {@code att*} instances use the ATT pseudo-Euclidean distance, and {@code EUC_2D} distances
-     * are rounded to the nearest integer.
+     * Reads a TSPLIB instance file, using the distance metric the file declares.
+     *
+     * @see TspLibReader
      */
-    public static TSP fromTsp(Tsp tsp) {
-        int n = tsp.getDimension();
-        double[][] distances = new double[n][n];
-        EdgeWeightType type = tsp.getEdgeWeightType();
-
-        if (type == EdgeWeightType.EXPLICIT) {
-            int[][] data = tsp.getEdgeWeightData()
-                    .orElseThrow(() -> new IllegalArgumentException("EXPLICIT instance without EDGE_WEIGHT_SECTION"));
-            for (int r = 0; r < n; r++)
-                for (int c = 0; c < n; c++)
-                    distances[r][c] = data[r][c];
-            return new TSP(n, distances);
-        }
-
-        List<Tsp.Node> nodes = tsp.getNodes()
-                .orElseThrow(() -> new IllegalArgumentException("Instance has no NODE_COORD_SECTION"));
-        // Plain (unrounded) Euclidean distance is only a fallback for files without a known type.
-        BiFunction<Tsp.Node, Tsp.Node, ? extends Number> metric = type == null
-                ? (a, b) -> Math.hypot(a.getX() - b.getX(), a.getY() - b.getY())
-                : EdgeWeightCalculationMethodFactory.getEdgeWeightCalculationMethod(type);
-
-        for (int r = 0; r < n; r++) {
-            for (int c = 0; c < n; c++) {
-                distances[r][c] = r == c ? 0 : metric.apply(nodes.get(r), nodes.get(c)).doubleValue();
-            }
-        }
-        return new TSP(n, distances);
+    public static TSP fromTspLib(Path file) {
+        return TspLibReader.readTsp(file);
     }
 
     private static boolean isSymmetric(double[][] d) {

@@ -10,6 +10,14 @@
     <artifactId>ParallelACO</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
         <!-- Java 21 is the current LTS release (the project previously targeted non-LTS Java 20). -->
         <maven.compiler.release>21</maven.compiler.release>

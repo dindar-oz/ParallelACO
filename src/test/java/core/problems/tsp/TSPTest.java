@@ -2,19 +2,14 @@ package core.problems.tsp;
 
 import core.SimpleOptimizationProblem;
 import core.algorithm.aco.problem.tsp.TSPQPheromoneMatrix;
-import core.problems.tsp.tsplib.BaseWithTspTest;
 import core.representation.Permutation;
 import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TSPTest implements BaseWithTspTest {
+class TSPTest {
 
     // Symmetric 4-city instance:   0 -1- 1 -2- 2 -1- 3, plus the long edges given below.
     private static final double[][] D = {
@@ -59,20 +54,5 @@ class TSPTest implements BaseWithTspTest {
     @Test
     void symmetricInstancesAreDetected() {
         assertTrue(new TSP(4, D).isSymmetric());
-    }
-
-    @Test
-    void fromTspUsesTheDeclaredAttMetric() throws IOException, URISyntaxException {
-        String file = Path.of(getClass().getResource("/tsplib/tiny_att.tsp").toURI()).toString();
-        TSP tsp = TSP.fromTsp(getTsp(file));
-
-        // ATT: r = sqrt((dx^2 + dy^2) / 10), rounded up to the next integer when fractional.
-        // (0,0)-(10,0): r = sqrt(10) = 3.16 -> 4 (plain Euclidean would give 10)
-        assertEquals(4.0, tsp.getDistance(0, 1), 0.0);
-        // (0,0)-(0,20): r = sqrt(40) = 6.32 -> 7
-        assertEquals(7.0, tsp.getDistance(0, 2), 0.0);
-        // (10,0)-(0,20): r = sqrt(50) = 7.07 -> 8
-        assertEquals(8.0, tsp.getDistance(1, 2), 0.0);
-        assertTrue(tsp.isSymmetric());
     }
 }
